@@ -48,14 +48,14 @@ class ConfigManager:
         with open(self._path, "w", encoding="utf-8") as f:
             json.dump(self._data, f, indent=2, ensure_ascii=False)
 
-    def get(self, dotted_key):
+    def get(self, dotted_key, default=None):
         keys = dotted_key.split(".")
         node = self._data
         for k in keys:
             if isinstance(node, dict) and k in node:
                 node = node[k]
             else:
-                return None
+                return default
         return node
 
     def set(self, dotted_key, value):
