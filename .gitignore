@@ -1,0 +1,5 @@
+# .superpowers is for brainstorming session files
+.superpowers/
+__pycache__/
+*.pyc
+.pytest_cache/
