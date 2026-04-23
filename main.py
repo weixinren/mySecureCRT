@@ -1,5 +1,6 @@
 # main.py
 import sys
+import os
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QStatusBar, QLabel, QMessageBox, QFileDialog,
@@ -90,10 +91,17 @@ QStatusBar QLabel {
 """
 
 
+def _resource_path(relative_path):
+    """Get path to resource, works for dev and PyInstaller bundle."""
+    base = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, relative_path)
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("🔌 mySecureCRT — 串口终端工具")
+        self.setWindowTitle("mySecureCRT — 串口终端工具")
+        self.setWindowIcon(QIcon(_resource_path("app_icon.ico")))
         self.config = ConfigManager()
         self.config.load()
         self.serial_mgr = SerialManager()
