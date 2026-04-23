@@ -110,8 +110,14 @@ QTabBar::tab:hover:!selected {
     color: #cccccc;
 }
 QTabBar::close-button {
-    image: none;
     subcontrol-position: right;
+    margin: 2px;
+    padding: 2px;
+    border-radius: 3px;
+    background: transparent;
+}
+QTabBar::close-button:hover {
+    background-color: #c42b1c;
 }
 """
 
@@ -163,12 +169,13 @@ class MainWindow(QMainWindow):
         self.tab_widget.setMovable(True)
 
         # "+" button in tab bar corner
-        add_btn = QPushButton("＋")
-        add_btn.setFixedSize(28, 28)
+        add_btn = QPushButton("  ＋ 新建  ")
+        add_btn.setFixedHeight(28)
         add_btn.setToolTip("新建会话 (Ctrl+T)")
         add_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #cccccc; border: none; font-size: 16px; }"
-            "QPushButton:hover { color: #ffffff; background-color: #3c3c3c; border-radius: 4px; }"
+            "QPushButton { background-color: #0e639c; color: #ffffff; border: none; "
+            "border-radius: 4px; font-size: 13px; padding: 4px 10px; margin: 2px 4px; }"
+            "QPushButton:hover { background-color: #1177bb; }"
         )
         add_btn.clicked.connect(self._on_new_tab)
         self.tab_widget.setCornerWidget(add_btn, Qt.TopRightCorner)
