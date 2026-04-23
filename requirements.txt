@@ -1,3 +1,4 @@
 PyQt5>=5.15.0
 pyserial>=3.5
+pyte>=0.8.0
 pytest>=7.0.0

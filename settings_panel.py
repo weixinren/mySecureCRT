@@ -59,14 +59,18 @@ class SettingsPanel(QWidget):
         layout.addWidget(self._make_section_label("显示设置"))
 
         mode_row = QHBoxLayout()
-        self.text_btn = QPushButton("文本")
-        self.text_btn.setCheckable(True)
-        self.text_btn.setChecked(True)
-        self.text_btn.clicked.connect(lambda: self._set_mode("text"))
+        self.terminal_btn = QPushButton("终端")
+        self.terminal_btn.setCheckable(True)
+        self.terminal_btn.setChecked(True)
+        self.terminal_btn.clicked.connect(lambda: self._set_mode("terminal"))
+        self.monitor_btn = QPushButton("监控")
+        self.monitor_btn.setCheckable(True)
+        self.monitor_btn.clicked.connect(lambda: self._set_mode("monitor"))
         self.hex_btn = QPushButton("HEX")
         self.hex_btn.setCheckable(True)
         self.hex_btn.clicked.connect(lambda: self._set_mode("hex"))
-        mode_row.addWidget(self.text_btn)
+        mode_row.addWidget(self.terminal_btn)
+        mode_row.addWidget(self.monitor_btn)
         mode_row.addWidget(self.hex_btn)
         layout.addLayout(mode_row)
 
@@ -132,7 +136,8 @@ class SettingsPanel(QWidget):
             self.connect_clicked.emit()
 
     def _set_mode(self, mode):
-        self.text_btn.setChecked(mode == "text")
+        self.terminal_btn.setChecked(mode == "terminal")
+        self.monitor_btn.setChecked(mode == "monitor")
         self.hex_btn.setChecked(mode == "hex")
         self.display_mode_changed.emit(mode)
 
@@ -192,7 +197,9 @@ class SettingsPanel(QWidget):
         self.parity_combo.setCurrentText(config.get("serial.parity", "None"))
         self.flow_combo.setCurrentText(config.get("serial.flowcontrol", "None"))
 
-        mode = config.get("display.mode", "text")
+        mode = config.get("display.mode", "terminal")
+        if mode == "text":
+            mode = "terminal"
         self._set_mode(mode)
 
         font_size = config.get("display.font_size", 14)

@@ -170,7 +170,9 @@ class MainWindow(QMainWindow):
 
     def _apply_saved_config(self):
         self.settings_panel.apply_config(self.config)
-        mode = self.config.get("display.mode") or "text"
+        mode = self.config.get("display.mode") or "terminal"
+        if mode == "text":
+            mode = "terminal"
         self.terminal.set_display_mode(mode)
         font_size = self.config.get("display.font_size", 14)
         self.terminal.set_font_size(int(font_size))
