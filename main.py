@@ -132,7 +132,6 @@ class MainWindow(QMainWindow):
 
         self._sessions = {}          # id → Session
         self._active_session = None  # current Session or None
-        self._active_connections = []
 
         self._init_ui()
         self._setup_shortcuts()
@@ -297,6 +296,12 @@ class MainWindow(QMainWindow):
 
     def _on_tab_changed(self, index):
         """Switch sidebar and status bar to the newly active tab."""
+        # Save departing session's sidebar state
+        if self._active_session is not None:
+            self._active_session.update_config_from_settings(
+                self.settings_panel.get_session_config()
+            )
+
         session = self._active_session_obj()
         if session is None:
             return
@@ -462,11 +467,13 @@ class MainWindow(QMainWindow):
             self._create_session()
             return
 
+        self.tab_widget.blockSignals(True)
         active_index = 0
         for i, cfg in enumerate(sessions_config):
             self._create_session(cfg)
             if cfg.get("id") == active_id:
                 active_index = i
+        self.tab_widget.blockSignals(False)
 
         if self.tab_widget.count() > 0:
             self.tab_widget.setCurrentIndex(active_index)

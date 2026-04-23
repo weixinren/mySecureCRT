@@ -102,3 +102,7 @@ class Session(QObject):
         """Clean up all resources."""
         self.logger.stop()
         self.serial_manager.close()
+        self.terminal.setParent(None)
+        self.terminal.deleteLater()
+        self.serial_manager.deleteLater()
+        self.deleteLater()
