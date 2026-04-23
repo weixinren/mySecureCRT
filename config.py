@@ -13,6 +13,17 @@ DEFAULT_CONFIG = {
         "x": 100,
         "y": 100,
     },
+    "quick_send": {
+        "collapsed": False,
+        "groups": [
+            {
+                "id": "default",
+                "name": "默认命令组",
+                "commands": [],
+            }
+        ],
+        "active_group": "default",
+    },
 }
 
 DEFAULT_SESSION = {

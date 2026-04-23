@@ -157,3 +157,34 @@ class TestConfigManager:
         """V2 ConfigManager must still support dotted get/set for window config."""
         self.mgr.set("window.width", 1200)
         assert self.mgr.get("window.width") == 1200
+
+    def test_default_config_has_quick_send(self):
+        """Default config should include quick_send field."""
+        qs = self.mgr.get("quick_send")
+        assert qs is not None
+        assert "groups" in qs
+        assert "active_group" in qs
+        assert len(qs["groups"]) == 1
+        assert qs["groups"][0]["name"] == "默认命令组"
+
+    def test_quick_send_save_and_load(self):
+        """quick_send config should persist."""
+        qs = {
+            "collapsed": True,
+            "groups": [
+                {"id": "g1", "name": "Test", "commands": [
+                    {"id": "c1", "name": "cmd", "data": "test", "type": "text",
+                     "append_newline": True, "loop_interval_ms": 0}
+                ]}
+            ],
+            "active_group": "g1",
+        }
+        self.mgr.set("quick_send", qs)
+        self.mgr.save()
+
+        mgr2 = ConfigManager(self.config_path)
+        mgr2.load()
+        loaded = mgr2.get("quick_send")
+        assert loaded["collapsed"] is True
+        assert len(loaded["groups"]) == 1
+        assert loaded["groups"][0]["commands"][0]["name"] == "cmd"
