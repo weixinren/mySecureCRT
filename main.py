@@ -508,6 +508,10 @@ class MainWindow(QMainWindow):
 
         if self.tab_widget.count() > 0:
             self.tab_widget.setCurrentIndex(active_index)
+            # setCurrentIndex(0) won't emit currentChanged if index is
+            # already 0 (set implicitly by the first addTab), so we
+            # must sync the active session explicitly.
+            self._on_tab_changed(active_index)
 
     def _save_config(self):
         """Save all session configs and window geometry."""
