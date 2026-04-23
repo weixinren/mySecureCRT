@@ -12,6 +12,12 @@
 
 ## ✨ 功能特性
 
+- **多标签/多会话**
+  - 🗂️ 同时连接多个串口设备（支持 4-8 个标签页）
+  - 🔄 共享侧边栏，自动跟随活动标签切换设置
+  - ⌨️ Ctrl+T 新建 / Ctrl+W 关闭 / 双击重命名标签
+  - 💾 所有标签页配置自动持久化，下次启动恢复
+
 - **三种显示模式**
   - 🖥️ **终端模式** — 完整 VT100 仿真，支持光标移动、Shell 交互，体验与 SecureCRT 一致
   - 📋 **监控模式** — 带时间戳的 RX/TX 逐行日志，适合查看串口通信记录
@@ -40,18 +46,18 @@
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  串口设置    │                                            │
-│  端口 COM21  │  [0.270] <I> Entering Startup State       │
-│  波特率 115200│  [0.471] <W> deserial chip link not locked│
-│  数据位 8    │  [1.571] <E> Set error code 0x00000100    │
-│  ...         │  #DK> help                                │
-│  显示设置    │  misc     - misc test                     │
-│  [终端][监控] │  log      - global log level              │
-│  [HEX]       │  help     - print command description     │
-│  字号 14pt   │  #DK> _                                   │
-│  [清屏][保存] │                                            │
+│  串口设置    │ [🟢 COM3] [🟢 COM5] [🔴 COM8] [＋]       │
+│  端口 COM3   │                                            │
+│  波特率 115200│  [0.270] <I> Entering Startup State       │
+│  数据位 8    │  [0.471] <W> deserial chip link not locked│
+│  ...         │  [1.571] <E> Set error code 0x00000100    │
+│  显示设置    │  #DK> help                                │
+│  [终端][监控] │  misc     - misc test                     │
+│  [HEX]       │  log      - global log level              │
+│  字号 14pt   │  help     - print command description     │
+│  [清屏][保存] │  #DK> _                                   │
 ├──────────────┴────────────────────────────────────────────┤
-│  🟢 已连接  COM21 | 115200 8N1          ↑TX: 6  ↓RX: 512 │
+│  🟢 已连接  COM3 | 115200 8N1    ↑TX: 6  ↓RX: 512 | 3 个会话│
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -94,16 +100,19 @@ python -m pytest tests/ -v
 
 ```
 mySecureCRT/
-├── main.py              # 主窗口、深色主题、信号连接
+├── main.py              # 主窗口（多标签 QTabWidget）、深色主题、信号连接
+├── session.py           # 会话管理（多标签 Session 封装）
 ├── terminal_widget.py   # 终端组件（VT100仿真 + 监控 + HEX）
 ├── settings_panel.py    # 侧边栏设置面板
 ├── serial_manager.py    # 串口管理器 + 读取线程
-├── config.py            # 配置管理（JSON 持久化）
+├── config.py            # 配置管理（JSON 持久化，V2 多会话 schema）
 ├── logger.py            # 数据日志记录器
 ├── requirements.txt     # Python 依赖
 ├── app_icon.ico         # 应用图标
 └── tests/               # 单元测试
     ├── test_config.py
+    ├── test_session.py
+    ├── test_settings_panel.py
     ├── test_logger.py
     ├── test_serial_manager.py
     └── test_terminal_widget.py
@@ -122,7 +131,8 @@ mySecureCRT/
 ## 📄 配置文件
 
 配置自动保存在 `~/.mySecureCRT/config.json`，包含：
-- 串口参数（端口、波特率、数据位等）
+- 多会话配置（每个标签页的串口参数、显示设置）
+- 活动会话标识（重启后恢复到上次的标签）
 - 显示模式和字体大小
 - 窗口位置和尺寸
 
