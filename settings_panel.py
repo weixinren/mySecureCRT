@@ -90,7 +90,7 @@ class SettingsPanel(QWidget):
     def _make_section_label(self, text):
         lbl = QLabel(text)
         lbl.setStyleSheet(
-            "color: #4ec9b0; font-size: 11px; font-weight: bold;"
+            "color: #4ec9b0; font-size: 14px; font-weight: bold;"
             "text-transform: uppercase; letter-spacing: 1px;"
         )
         return lbl
@@ -103,7 +103,7 @@ class SettingsPanel(QWidget):
 
     def _add_combo(self, layout, label_text, items):
         lbl = QLabel(label_text)
-        lbl.setStyleSheet("color: #888888; font-size: 10px;")
+        lbl.setStyleSheet("color: #888888; font-size: 13px;")
         layout.addWidget(lbl)
         combo = QComboBox()
         combo.addItems(items)

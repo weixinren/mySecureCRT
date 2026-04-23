@@ -22,7 +22,7 @@ class TerminalWidget(QPlainTextEdit):
         self._tx_bytes = 0
         self._rx_bytes = 0
         self.setReadOnly(True)
-        self.setFont(QFont("Consolas", 10))
+        self.setFont(QFont("Consolas", 14))
         self.setStyleSheet(
             "QPlainTextEdit {"
             "  background-color: #1e1e1e;"

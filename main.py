@@ -22,7 +22,7 @@ QWidget {
     background-color: #1e1e1e;
     color: #cccccc;
     font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
-    font-size: 12px;
+    font-size: 14px;
 }
 QComboBox {
     background-color: #3c3c3c;
@@ -81,7 +81,7 @@ QLabel {
 QStatusBar {
     background-color: #007acc;
     color: white;
-    font-size: 11px;
+    font-size: 13px;
 }
 QStatusBar QLabel {
     color: white;
