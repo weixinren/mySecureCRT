@@ -75,11 +75,14 @@ class TerminalWidget(QPlainTextEdit):
             ascii_part = "".join(chr(b) if 32 <= b < 127 else "." for b in data)
             return f"[{timestamp}] {direction}: {hex_part} | {ascii_part}"
         else:
-            # latin-1 preserves all byte values; MCU output is ASCII
             text = data.decode("latin-1")
-            # Strip ANSI CSI sequences (shell cursor control), \r, and \n
+            # Strip ANSI CSI sequences (shell cursor control)
             text = _ANSI_CSI.sub('', text)
-            text = text.replace('\r', '').replace('\n', '')
+            # Remove non-printable control chars (0x00-0x1F, 0x7F) except tab
+            text = ''.join(
+                c for c in text
+                if c == '\t' or (c >= ' ' and c != '\x7f')
+            )
             return f"[{timestamp}] {direction}: {text}"
 
     def append_data(self, direction, data):
