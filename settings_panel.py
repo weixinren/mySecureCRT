@@ -204,3 +204,52 @@ class SettingsPanel(QWidget):
 
         font_size = config.get("display.font_size", 14)
         self.font_spin.setValue(int(font_size))
+
+    def apply_session_config(self, config):
+        """Load a Session's config dict into all sidebar controls.
+
+        Args:
+            config: dict with 'serial' and 'display' sub-dicts.
+        """
+        serial = config.get("serial", {})
+        display = config.get("display", {})
+
+        # Block signals to avoid triggering side effects during bulk update
+        self.blockSignals(True)
+
+        idx = self.port_combo.findText(serial.get("port", ""))
+        if idx >= 0:
+            self.port_combo.setCurrentIndex(idx)
+        self.baud_combo.setCurrentText(str(serial.get("baudrate", 115200)))
+        self.databits_combo.setCurrentText(str(serial.get("databits", 8)))
+        self.stopbits_combo.setCurrentText(str(serial.get("stopbits", 1)))
+        self.parity_combo.setCurrentText(serial.get("parity", "None"))
+        self.flow_combo.setCurrentText(serial.get("flowcontrol", "None"))
+
+        mode = display.get("mode", "terminal")
+        if mode == "text":
+            mode = "terminal"
+        self._set_mode(mode)
+
+        self.font_spin.blockSignals(True)
+        self.font_spin.setValue(int(display.get("font_size", 14)))
+        self.font_spin.blockSignals(False)
+
+        self.blockSignals(False)
+
+    def get_session_config(self):
+        """Export current sidebar controls as a session config snippet.
+
+        Returns:
+            dict with keys: port, baudrate, databits, stopbits, parity,
+            flowcontrol, display_mode, font_size.
+        """
+        settings = self.get_settings()
+        if self.terminal_btn.isChecked():
+            settings["display_mode"] = "terminal"
+        elif self.monitor_btn.isChecked():
+            settings["display_mode"] = "monitor"
+        else:
+            settings["display_mode"] = "hex"
+        settings["font_size"] = self.font_spin.value()
+        return settings
