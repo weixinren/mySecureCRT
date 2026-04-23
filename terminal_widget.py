@@ -1,8 +1,11 @@
 # terminal_widget.py
+import re
 from datetime import datetime
 from PyQt5.QtWidgets import QPlainTextEdit
 from PyQt5.QtGui import QFont, QTextCharFormat, QColor, QKeyEvent, QWheelEvent
 from PyQt5.QtCore import pyqtSignal, Qt, QTimer
+
+_ANSI_ESCAPE = re.compile(r'\x1b\[[0-9;]*[A-Za-z]|\x1b\].*?(?:\x07|\x1b\\)|\x1b[()][0-9A-B]|\x1b.?')
 
 
 class TerminalWidget(QPlainTextEdit):
@@ -62,6 +65,13 @@ class TerminalWidget(QPlainTextEdit):
     def set_display_mode(self, mode):
         self._display_mode = mode
 
+    def _clean_text(self, text):
+        text = _ANSI_ESCAPE.sub('', text)
+        text = text.replace('\r', '')
+        text = text.replace('\n', '')
+        text = ''.join(c if c == '\t' or (ord(c) >= 32) else '' for c in text)
+        return text
+
     def format_line(self, direction, data, mode=None):
         if mode is None:
             mode = self._display_mode
@@ -72,6 +82,7 @@ class TerminalWidget(QPlainTextEdit):
             return f"[{timestamp}] {direction}: {hex_part} | {ascii_part}"
         else:
             text = data.decode("utf-8", errors="replace")
+            text = self._clean_text(text)
             return f"[{timestamp}] {direction}: {text}"
 
     def append_data(self, direction, data):
