@@ -2,7 +2,7 @@
 from datetime import datetime
 from PyQt5.QtWidgets import QPlainTextEdit
 from PyQt5.QtGui import QFont, QTextCharFormat, QColor, QKeyEvent, QWheelEvent
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt, QTimer
 
 
 class TerminalWidget(QPlainTextEdit):
@@ -26,6 +26,11 @@ class TerminalWidget(QPlainTextEdit):
         self._tx_bytes = 0
         self._rx_bytes = 0
         self._font_size = 14
+        self._rx_buffer = b""
+        self._flush_timer = QTimer(self)
+        self._flush_timer.setSingleShot(True)
+        self._flush_timer.setInterval(50)
+        self._flush_timer.timeout.connect(self._flush_rx_buffer)
         self.setReadOnly(True)
         self._apply_font_style()
         self.setMaximumBlockCount(10000)
@@ -70,12 +75,30 @@ class TerminalWidget(QPlainTextEdit):
             return f"[{timestamp}] {direction}: {text}"
 
     def append_data(self, direction, data):
-        if direction == "TX":
-            self._tx_bytes += len(data)
-        else:
+        if direction == "RX":
             self._rx_bytes += len(data)
-        line = self.format_line(direction, data)
-        self._append_colored_line(direction, line)
+            self._rx_buffer += data
+            self._process_rx_buffer()
+        else:
+            self._tx_bytes += len(data)
+            line = self.format_line("TX", data)
+            self._append_colored_line("TX", line)
+
+    def _process_rx_buffer(self):
+        while b"\n" in self._rx_buffer:
+            idx = self._rx_buffer.index(b"\n")
+            chunk = self._rx_buffer[: idx + 1]
+            self._rx_buffer = self._rx_buffer[idx + 1 :]
+            line = self.format_line("RX", chunk)
+            self._append_colored_line("RX", line)
+        if self._rx_buffer:
+            self._flush_timer.start()
+
+    def _flush_rx_buffer(self):
+        if self._rx_buffer:
+            line = self.format_line("RX", self._rx_buffer)
+            self._append_colored_line("RX", line)
+            self._rx_buffer = b""
 
     def _append_colored_line(self, direction, line):
         cursor = self.textCursor()
