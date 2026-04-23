@@ -153,7 +153,10 @@ class MainWindow(QMainWindow):
         self.settings_panel.connect_clicked.connect(self._on_connect)
         self.settings_panel.disconnect_clicked.connect(self._on_disconnect)
         self.settings_panel.refresh_clicked.connect(self._refresh_ports)
+        # Display mode and font size
         self.settings_panel.display_mode_changed.connect(self.terminal.set_display_mode)
+        self.settings_panel.font_size_changed.connect(self.terminal.set_font_size)
+        self.terminal.font_size_changed.connect(self.settings_panel.set_font_size)
         self.settings_panel.clear_clicked.connect(self._on_clear)
         self.settings_panel.save_log_clicked.connect(self._on_save_log)
 
@@ -169,6 +172,8 @@ class MainWindow(QMainWindow):
         self.settings_panel.apply_config(self.config)
         mode = self.config.get("display.mode") or "text"
         self.terminal.set_display_mode(mode)
+        font_size = self.config.get("display.font_size", 14)
+        self.terminal.set_font_size(int(font_size))
 
     def _refresh_ports(self):
         ports = self.serial_mgr.list_ports()
@@ -248,6 +253,7 @@ class MainWindow(QMainWindow):
         self.config.set("serial.parity", settings["parity"])
         self.config.set("serial.flowcontrol", settings["flowcontrol"])
         self.config.set("display.mode", self.terminal.display_mode)
+        self.config.set("display.font_size", self.terminal.font_size)
         geo = self.geometry()
         self.config.set("window.width", geo.width())
         self.config.set("window.height", geo.height())

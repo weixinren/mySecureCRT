@@ -1,6 +1,7 @@
 # settings_panel.py
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QComboBox, QPushButton, QHBoxLayout,
+    QSpinBox,
 )
 from PyQt5.QtCore import pyqtSignal, Qt
 
@@ -10,6 +11,7 @@ class SettingsPanel(QWidget):
     disconnect_clicked = pyqtSignal()
     refresh_clicked = pyqtSignal()
     display_mode_changed = pyqtSignal(str)
+    font_size_changed = pyqtSignal(int)
     clear_clicked = pyqtSignal()
     save_log_clicked = pyqtSignal()
 
@@ -68,6 +70,19 @@ class SettingsPanel(QWidget):
         mode_row.addWidget(self.hex_btn)
         layout.addLayout(mode_row)
 
+        # Font size control
+        font_row = QHBoxLayout()
+        font_lbl = QLabel("字号")
+        font_lbl.setStyleSheet("color: #888888; font-size: 13px;")
+        self.font_spin = QSpinBox()
+        self.font_spin.setRange(8, 48)
+        self.font_spin.setValue(14)
+        self.font_spin.setSuffix(" pt")
+        self.font_spin.valueChanged.connect(self.font_size_changed.emit)
+        font_row.addWidget(font_lbl)
+        font_row.addWidget(self.font_spin)
+        layout.addLayout(font_row)
+
         action_row = QHBoxLayout()
         self.clear_btn = QPushButton("清屏")
         self.clear_btn.clicked.connect(self.clear_clicked.emit)
@@ -120,6 +135,11 @@ class SettingsPanel(QWidget):
         self.text_btn.setChecked(mode == "text")
         self.hex_btn.setChecked(mode == "hex")
         self.display_mode_changed.emit(mode)
+
+    def set_font_size(self, size):
+        self.font_spin.blockSignals(True)
+        self.font_spin.setValue(size)
+        self.font_spin.blockSignals(False)
 
     def set_connected(self, connected):
         self._connected = connected
@@ -174,3 +194,6 @@ class SettingsPanel(QWidget):
 
         mode = config.get("display.mode", "text")
         self._set_mode(mode)
+
+        font_size = config.get("display.font_size", 14)
+        self.font_spin.setValue(int(font_size))

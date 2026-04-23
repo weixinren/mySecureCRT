@@ -1,12 +1,16 @@
 # terminal_widget.py
 from datetime import datetime
 from PyQt5.QtWidgets import QPlainTextEdit
-from PyQt5.QtGui import QFont, QTextCharFormat, QColor, QKeyEvent
+from PyQt5.QtGui import QFont, QTextCharFormat, QColor, QKeyEvent, QWheelEvent
 from PyQt5.QtCore import pyqtSignal, Qt
 
 
 class TerminalWidget(QPlainTextEdit):
     key_pressed = pyqtSignal(bytes)
+    font_size_changed = pyqtSignal(int)
+
+    MIN_FONT_SIZE = 8
+    MAX_FONT_SIZE = 48
 
     COLORS = {
         "timestamp": "#666666",
@@ -21,8 +25,9 @@ class TerminalWidget(QPlainTextEdit):
         self._display_mode = "text"
         self._tx_bytes = 0
         self._rx_bytes = 0
+        self._font_size = 14
         self.setReadOnly(True)
-        self.setFont(QFont("Consolas", 14))
+        self.setFont(QFont("Consolas", self._font_size))
         self.setStyleSheet(
             "QPlainTextEdit {"
             "  background-color: #1e1e1e;"
@@ -109,6 +114,28 @@ class TerminalWidget(QPlainTextEdit):
         self.clear()
         self._tx_bytes = 0
         self._rx_bytes = 0
+
+    def set_font_size(self, size):
+        size = max(self.MIN_FONT_SIZE, min(self.MAX_FONT_SIZE, size))
+        if size != self._font_size:
+            self._font_size = size
+            self.setFont(QFont("Consolas", self._font_size))
+            self.font_size_changed.emit(self._font_size)
+
+    @property
+    def font_size(self):
+        return self._font_size
+
+    def wheelEvent(self, event: QWheelEvent):
+        if event.modifiers() & Qt.ControlModifier:
+            delta = event.angleDelta().y()
+            if delta > 0:
+                self.set_font_size(self._font_size + 1)
+            elif delta < 0:
+                self.set_font_size(self._font_size - 1)
+            event.accept()
+        else:
+            super().wheelEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent):
         key = event.key()
