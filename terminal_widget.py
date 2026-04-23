@@ -27,16 +27,20 @@ class TerminalWidget(QPlainTextEdit):
         self._rx_bytes = 0
         self._font_size = 14
         self.setReadOnly(True)
-        self.setFont(QFont("Consolas", self._font_size))
+        self._apply_font_style()
+        self.setMaximumBlockCount(10000)
+
+    def _apply_font_style(self):
         self.setStyleSheet(
             "QPlainTextEdit {"
+            f"  font-family: Consolas, 'Courier New', monospace;"
+            f"  font-size: {self._font_size}pt;"
             "  background-color: #1e1e1e;"
             "  color: #cccccc;"
             "  border: none;"
             "  selection-background-color: #264f78;"
             "}"
         )
-        self.setMaximumBlockCount(10000)
 
     @property
     def display_mode(self):
@@ -119,7 +123,7 @@ class TerminalWidget(QPlainTextEdit):
         size = max(self.MIN_FONT_SIZE, min(self.MAX_FONT_SIZE, size))
         if size != self._font_size:
             self._font_size = size
-            self.setFont(QFont("Consolas", self._font_size))
+            self._apply_font_style()
             self.font_size_changed.emit(self._font_size)
 
     @property
