@@ -49,6 +49,8 @@ class TerminalWidget(QPlainTextEdit):
 
         # Terminal mode: pyte VT100 screen
         self._vt_screen = pyte.Screen(self.VT_COLS, self.VT_ROWS)
+        # LNM: Line Feed also does Carriage Return (MCU sends \n only)
+        self._vt_screen.set_mode(pyte.modes.LNM)
         self._vt_stream = pyte.Stream(self._vt_screen)
         self._vt_refresh_timer = QTimer(self)
         self._vt_refresh_timer.setSingleShot(True)
@@ -89,7 +91,7 @@ class TerminalWidget(QPlainTextEdit):
         self._flush_rx_buffer()
         self._display_mode = mode
         if mode == MODE_TERMINAL:
-            self._vt_screen.reset()
+            self._reset_vt()
             self.clear()
 
     # ── Monitor / HEX helpers ──
@@ -222,12 +224,16 @@ class TerminalWidget(QPlainTextEdit):
 
     # ── Common ──
 
+    def _reset_vt(self):
+        self._vt_screen.reset()
+        self._vt_screen.set_mode(pyte.modes.LNM)
+
     def clear_terminal(self):
         self.clear()
         self._tx_bytes = 0
         self._rx_bytes = 0
         self._rx_buffer = b""
-        self._vt_screen.reset()
+        self._reset_vt()
 
     def set_font_size(self, size):
         size = max(self.MIN_FONT_SIZE, min(self.MAX_FONT_SIZE, size))
