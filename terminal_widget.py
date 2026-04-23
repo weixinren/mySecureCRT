@@ -134,7 +134,9 @@ class TerminalWidget(QPlainTextEdit):
             self._tx_bytes += len(data)
 
         if self._display_mode == MODE_TERMINAL:
-            self._feed_vt(data)
+            # Only feed RX to VT screen; MCU echo handles TX display
+            if direction == "RX":
+                self._feed_vt(data)
         elif self._display_mode == MODE_HEX:
             line = self._format_hex_line(direction, data)
             self._append_colored_line(direction, line)
