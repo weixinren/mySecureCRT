@@ -131,10 +131,10 @@ class TestQuickSendPanel:
         assert not panel.is_collapsed
         panel.set_collapsed(True)
         assert panel.is_collapsed
-        assert panel.width() == 32
+        assert panel.maximumWidth() == 32
         panel.set_collapsed(False)
         assert not panel.is_collapsed
-        assert panel.width() == 180
+        assert panel.maximumWidth() == 180
 
     def test_empty_group_shows_placeholder(self):
         panel = QuickSendPanel()

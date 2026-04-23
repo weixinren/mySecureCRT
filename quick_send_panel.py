@@ -77,14 +77,14 @@ class CommandButton(QPushButton):
         try:
             data = self.encode_data()
             self.send_clicked.emit(data)
-        except (ValueError, Exception):
-            pass
+        except ValueError:
+            pass  # Encoding errors prevented by CommandDialog validation
 
     def _on_loop_tick(self):
         try:
             data = self.encode_data()
             self.send_clicked.emit(data)
-        except (ValueError, Exception):
+        except ValueError:
             self.stop_loop()
 
     def _show_context_menu(self, pos):
