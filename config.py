@@ -1,9 +1,24 @@
 import os
 import json
 import copy
+import uuid
 
 
 DEFAULT_CONFIG = {
+    "sessions": [],
+    "active_session": "",
+    "window": {
+        "width": 900,
+        "height": 600,
+        "x": 100,
+        "y": 100,
+    },
+}
+
+DEFAULT_SESSION = {
+    "id": "",
+    "name": "新会话",
+    "renamed": False,
     "serial": {
         "port": "",
         "baudrate": 115200,
@@ -13,15 +28,18 @@ DEFAULT_CONFIG = {
         "flowcontrol": "None",
     },
     "display": {
-        "mode": "text",
-    },
-    "window": {
-        "width": 900,
-        "height": 600,
-        "x": 100,
-        "y": 100,
+        "mode": "terminal",
+        "font_size": 14,
     },
 }
+
+
+def new_session_config(name="新会话"):
+    """Create a new session config dict with a unique ID."""
+    session = copy.deepcopy(DEFAULT_SESSION)
+    session["id"] = uuid.uuid4().hex[:8]
+    session["name"] = name
+    return session
 
 
 class ConfigManager:
@@ -39,9 +57,13 @@ class ConfigManager:
         try:
             with open(self._path, "r", encoding="utf-8") as f:
                 saved = json.load(f)
-            self._merge(self._data, saved)
         except (json.JSONDecodeError, IOError):
-            pass
+            return
+
+        if "sessions" not in saved:
+            saved = self._migrate_v1(saved)
+
+        self._merge(self._data, saved)
 
     def save(self):
         os.makedirs(os.path.dirname(self._path), exist_ok=True)
@@ -69,6 +91,24 @@ class ConfigManager:
 
     def get_all(self):
         return copy.deepcopy(self._data)
+
+    @staticmethod
+    def _migrate_v1(old_config):
+        """Migrate V1 single-session config to V2 multi-session format."""
+        serial_cfg = old_config.get("serial", {})
+        display_cfg = old_config.get("display", {})
+        port = serial_cfg.get("port", "")
+        session = copy.deepcopy(DEFAULT_SESSION)
+        session["id"] = uuid.uuid4().hex[:8]
+        session["name"] = port if port else "新会话"
+        session["renamed"] = False
+        session["serial"] = {**DEFAULT_SESSION["serial"], **serial_cfg}
+        session["display"] = {**DEFAULT_SESSION["display"], **display_cfg}
+        return {
+            "sessions": [session],
+            "active_session": session["id"],
+            "window": old_config.get("window", copy.deepcopy(DEFAULT_CONFIG["window"])),
+        }
 
     @staticmethod
     def _merge(base, override):
