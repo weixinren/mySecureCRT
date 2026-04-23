@@ -13,6 +13,7 @@ from serial_manager import SerialManager
 from settings_panel import SettingsPanel
 from config import ConfigManager, new_session_config
 from session import Session
+from quick_send_panel import QuickSendPanel
 
 
 DARK_THEME = """
@@ -143,6 +144,7 @@ class MainWindow(QMainWindow):
         self._setup_shortcuts()
         self._restore_sessions()
         self._refresh_ports()
+        self._restore_quick_send()
 
     def _init_ui(self):
         central = QWidget()
@@ -186,6 +188,14 @@ class MainWindow(QMainWindow):
 
         right_layout.addWidget(self.tab_widget)
         main_layout.addLayout(right_layout, 1)
+
+        # Right-side quick send panel
+        self.quick_send_panel = QuickSendPanel()
+        self.quick_send_panel.setStyleSheet(
+            "QuickSendPanel { background-color: #252526; border-left: 1px solid #333333; }"
+        )
+        self.quick_send_panel.send_requested.connect(self._on_quick_send)
+        main_layout.addWidget(self.quick_send_panel)
 
         # Status bar
         self.status_bar = QStatusBar()
@@ -436,6 +446,20 @@ class MainWindow(QMainWindow):
         ports = mgr.list_ports()
         self.settings_panel.set_ports(ports)
 
+    # ── Quick Send ──
+
+    def _on_quick_send(self, data):
+        """Route quick send data to active session's serial port."""
+        session = self._active_session
+        if session and session.serial_manager.is_connected:
+            session.serial_manager.write(data)
+
+    def _restore_quick_send(self):
+        """Load quick send config into panel."""
+        qs_config = self.config.get("quick_send")
+        if qs_config:
+            self.quick_send_panel.set_config(qs_config)
+
     # ── UI Helpers ──
 
     def _tab_label(self, session):
@@ -512,9 +536,11 @@ class MainWindow(QMainWindow):
         self.config.set("window.height", geo.height())
         self.config.set("window.x", geo.x())
         self.config.set("window.y", geo.y())
+        self.config.set("quick_send", self.quick_send_panel.get_config())
         self.config.save()
 
     def closeEvent(self, event):
+        self.quick_send_panel.stop_all_loops()
         self._save_config()
         for session in list(self._sessions.values()):
             session.destroy()
