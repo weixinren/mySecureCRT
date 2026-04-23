@@ -28,6 +28,10 @@ class TerminalWidget(QPlainTextEdit):
         "rx_data": "#569cd6",
         "tx_tag": "#ce9178",
         "tx_data": "#ce9178",
+        "log_info": "#569cd6",     # <I> normal blue
+        "log_warn": "#dcdcaa",     # <W> yellow
+        "log_error": "#f44747",    # <E> red
+        "default": "#cccccc",
     }
 
     VT_COLS = 120
@@ -94,6 +98,15 @@ class TerminalWidget(QPlainTextEdit):
             self._reset_vt()
             self.clear()
 
+    def _log_level_color(self, text):
+        if "<E>" in text:
+            return self.COLORS["log_error"]
+        if "<W>" in text:
+            return self.COLORS["log_warn"]
+        if "<I>" in text:
+            return self.COLORS["log_info"]
+        return self.COLORS["default"]
+
     # ── Monitor / HEX helpers ──
 
     def _format_monitor_line(self, direction, data):
@@ -157,12 +170,19 @@ class TerminalWidget(QPlainTextEdit):
         cursor_row = self._vt_screen.cursor.y
         cursor_col = self._vt_screen.cursor.x
 
+        # Render with per-line log level colors
         self.setReadOnly(False)
-        self.setPlainText("\n".join(lines))
+        self.clear()
+        cursor = self.textCursor()
+        for i, line in enumerate(lines):
+            fmt = QTextCharFormat()
+            fmt.setForeground(QColor(self._log_level_color(line)))
+            cursor.insertText(line, fmt)
+            if i < len(lines) - 1:
+                cursor.insertText("\n", fmt)
         self.setReadOnly(True)
 
         # Position cursor
-        cursor = self.textCursor()
         cursor.movePosition(cursor.Start)
         for _ in range(cursor_row):
             cursor.movePosition(cursor.Down)
@@ -207,10 +227,11 @@ class TerminalWidget(QPlainTextEdit):
             data_fmt = QTextCharFormat()
             data_fmt.setForeground(QColor(self.COLORS["tx_data"]))
         else:
+            log_color = self._log_level_color(line)
             tag_fmt = QTextCharFormat()
             tag_fmt.setForeground(QColor(self.COLORS["rx_tag"]))
             data_fmt = QTextCharFormat()
-            data_fmt.setForeground(QColor(self.COLORS["rx_data"]))
+            data_fmt.setForeground(QColor(log_color))
 
         colon_pos = rest.index(":")
         tag_part = rest[: colon_pos + 1]
