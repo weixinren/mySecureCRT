@@ -41,3 +41,58 @@ class TestTerminalWidget:
         assert self.widget.display_mode == "hex"
         self.widget.set_display_mode("terminal")
         assert self.widget.display_mode == "terminal"
+
+
+class TestFindBar:
+    def setup_method(self):
+        self.widget = TerminalWidget()
+        self.widget.set_display_mode("monitor")
+        self.widget.append_data("RX", b"Hello World\n")
+        self.widget.append_data("RX", b"hello test\n")
+        self.widget.append_data("RX", b"nothing here\n")
+
+    def test_find_bar_initially_hidden(self):
+        assert self.widget._find_bar.isHidden()
+
+    def test_open_close_find_bar(self):
+        self.widget._open_find_bar()
+        assert not self.widget._find_bar.isHidden()
+        self.widget._close_find_bar()
+        assert self.widget._find_bar.isHidden()
+
+    def test_find_case_insensitive(self):
+        self.widget._open_find_bar()
+        self.widget._find_bar.search_input.setText("hello")
+        assert len(self.widget._find_matches) == 2
+        assert self.widget._find_current == 0
+
+    def test_find_case_sensitive(self):
+        self.widget._open_find_bar()
+        self.widget._find_bar.case_btn.setChecked(True)
+        self.widget._find_bar.search_input.setText("hello")
+        assert len(self.widget._find_matches) == 1
+
+    def test_find_next_prev_wraps(self):
+        self.widget._open_find_bar()
+        self.widget._find_bar.search_input.setText("hello")
+        assert self.widget._find_current == 0
+        self.widget._find_next()
+        assert self.widget._find_current == 1
+        self.widget._find_next()
+        assert self.widget._find_current == 0  # wraps
+        self.widget._find_prev()
+        assert self.widget._find_current == 1  # wraps back
+
+    def test_find_no_matches(self):
+        self.widget._open_find_bar()
+        self.widget._find_bar.search_input.setText("nonexistent")
+        assert len(self.widget._find_matches) == 0
+        assert self.widget._find_current == -1
+
+    def test_close_clears_highlights(self):
+        self.widget._open_find_bar()
+        self.widget._find_bar.search_input.setText("hello")
+        assert len(self.widget._find_matches) == 2
+        self.widget._close_find_bar()
+        assert len(self.widget._find_matches) == 0
+        assert self.widget.extraSelections() == []

@@ -3,8 +3,13 @@ import re
 from datetime import datetime
 
 import pyte
-from PyQt5.QtWidgets import QPlainTextEdit
-from PyQt5.QtGui import QFont, QTextCharFormat, QColor, QKeyEvent, QWheelEvent
+from PyQt5.QtWidgets import (
+    QPlainTextEdit, QTextEdit, QWidget, QHBoxLayout, QLineEdit,
+    QPushButton, QLabel,
+)
+from PyQt5.QtGui import (
+    QFont, QTextCharFormat, QColor, QKeyEvent, QWheelEvent, QTextCursor,
+)
 from PyQt5.QtCore import pyqtSignal, Qt, QTimer
 
 _ANSI_CSI = re.compile(r'\x1b\[[0-9;]*[A-Za-z]')
@@ -13,6 +18,102 @@ _ANSI_CSI = re.compile(r'\x1b\[[0-9;]*[A-Za-z]')
 MODE_TERMINAL = "terminal"  # VT100 emulation with cursor
 MODE_MONITOR = "monitor"    # Timestamped lines (log view)
 MODE_HEX = "hex"            # Hex dump
+
+# Find bar highlight colors
+_HIGHLIGHT_ALL = QColor(255, 255, 0, 80)       # yellow, semi-transparent
+_HIGHLIGHT_CURRENT = QColor(255, 165, 0, 160)  # orange, more opaque
+
+
+class FindBar(QWidget):
+    """Floating search bar overlaid on terminal widget."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAutoFillBackground(True)
+        self.setStyleSheet(
+            "FindBar {"
+            "  background-color: #2d2d30;"
+            "  border: 1px solid #555555;"
+            "  border-radius: 4px;"
+            "}"
+        )
+        self._init_ui()
+        self.hide()
+
+    def _init_ui(self):
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 4, 8, 4)
+        layout.setSpacing(4)
+
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("查找...")
+        self.search_input.setMinimumWidth(180)
+        self.search_input.setStyleSheet(
+            "QLineEdit {"
+            "  background-color: #3c3c3c;"
+            "  color: #cccccc;"
+            "  border: 1px solid #555555;"
+            "  border-radius: 3px;"
+            "  padding: 2px 6px;"
+            "}"
+        )
+        layout.addWidget(self.search_input)
+
+        self.match_label = QLabel("")
+        self.match_label.setStyleSheet("color: #999999; font-size: 11px;")
+        self.match_label.setMinimumWidth(50)
+        layout.addWidget(self.match_label)
+
+        btn_style = (
+            "QPushButton {"
+            "  background-color: transparent;"
+            "  color: #cccccc;"
+            "  border: 1px solid #555555;"
+            "  border-radius: 3px;"
+            "  padding: 2px 6px;"
+            "  font-size: 12px;"
+            "}"
+            "QPushButton:hover { background-color: #3c3c3c; }"
+            "QPushButton:checked { background-color: #094771; border-color: #094771; }"
+        )
+
+        self.case_btn = QPushButton("Aa")
+        self.case_btn.setCheckable(True)
+        self.case_btn.setToolTip("区分大小写")
+        self.case_btn.setFixedSize(28, 24)
+        self.case_btn.setStyleSheet(btn_style)
+        layout.addWidget(self.case_btn)
+
+        self.prev_btn = QPushButton("↑")
+        self.prev_btn.setToolTip("上一个 (Shift+Enter)")
+        self.prev_btn.setFixedSize(24, 24)
+        self.prev_btn.setStyleSheet(btn_style)
+        layout.addWidget(self.prev_btn)
+
+        self.next_btn = QPushButton("↓")
+        self.next_btn.setToolTip("下一个 (Enter)")
+        self.next_btn.setFixedSize(24, 24)
+        self.next_btn.setStyleSheet(btn_style)
+        layout.addWidget(self.next_btn)
+
+        self.close_btn = QPushButton("×")
+        self.close_btn.setToolTip("关闭 (Esc)")
+        self.close_btn.setFixedSize(24, 24)
+        self.close_btn.setStyleSheet(btn_style)
+        layout.addWidget(self.close_btn)
+
+    def keyPressEvent(self, event: QKeyEvent):
+        if event.key() == Qt.Key_Escape:
+            self.hide()
+            if self.parent():
+                self.parent().setFocus()
+        elif event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            if event.modifiers() & Qt.ShiftModifier:
+                self.prev_btn.click()
+            else:
+                self.next_btn.click()
+        else:
+            super().keyPressEvent(event)
 
 
 class TerminalWidget(QPlainTextEdit):
@@ -64,6 +165,16 @@ class TerminalWidget(QPlainTextEdit):
         self.setReadOnly(True)
         self._apply_font_style()
         self.setMaximumBlockCount(10000)
+
+        # Find bar
+        self._find_bar = FindBar(self)
+        self._find_matches = []  # list of QTextCursor for each match
+        self._find_current = -1  # index into _find_matches
+        self._find_bar.search_input.textChanged.connect(self._on_find_text_changed)
+        self._find_bar.case_btn.toggled.connect(lambda: self._on_find_text_changed(self._find_bar.search_input.text()))
+        self._find_bar.next_btn.clicked.connect(self._find_next)
+        self._find_bar.prev_btn.clicked.connect(self._find_prev)
+        self._find_bar.close_btn.clicked.connect(self._close_find_bar)
 
     def _apply_font_style(self):
         self.setStyleSheet(
@@ -283,6 +394,14 @@ class TerminalWidget(QPlainTextEdit):
     def keyPressEvent(self, event: QKeyEvent):
         key = event.key()
         text = event.text()
+        # Ctrl+F opens find bar
+        if key == Qt.Key_F and event.modifiers() & Qt.ControlModifier:
+            self._open_find_bar()
+            return
+        # Escape closes find bar if visible
+        if key == Qt.Key_Escape and self._find_bar.isVisible():
+            self._close_find_bar()
+            return
         if key == Qt.Key_Return or key == Qt.Key_Enter:
             self.key_pressed.emit(b"\r\n")
         elif key == Qt.Key_Backspace:
@@ -307,3 +426,96 @@ class TerminalWidget(QPlainTextEdit):
             self.key_pressed.emit(b"\x1b[3~")
         elif text:
             self.key_pressed.emit(text.encode("utf-8"))
+
+    # ── Find Bar ──
+
+    def _open_find_bar(self):
+        self._find_bar.show()
+        self._position_find_bar()
+        self._find_bar.search_input.setFocus()
+        self._find_bar.search_input.selectAll()
+
+    def _close_find_bar(self):
+        self._find_bar.hide()
+        self._clear_find_highlights()
+        self.setFocus()
+
+    def _position_find_bar(self):
+        bar_width = min(360, self.width() - 20)
+        self._find_bar.setFixedWidth(bar_width)
+        x = self.width() - bar_width - 10
+        self._find_bar.move(x, 8)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self._find_bar.isVisible():
+            self._position_find_bar()
+
+    def _on_find_text_changed(self, text):
+        self._find_matches.clear()
+        self._find_current = -1
+
+        if not text:
+            self._clear_find_highlights()
+            self._find_bar.match_label.setText("")
+            return
+
+        from PyQt5.QtGui import QTextDocument
+        case_sensitive = self._find_bar.case_btn.isChecked()
+        flags = QTextDocument.FindCaseSensitively if case_sensitive else QTextDocument.FindFlags(0)
+
+        doc = self.document()
+        cursor = doc.find(text, 0, flags)
+        while not cursor.isNull():
+            self._find_matches.append(QTextCursor(cursor))
+            cursor = doc.find(text, cursor, flags)
+
+        if self._find_matches:
+            self._find_current = 0
+            self._apply_find_highlights()
+            self._update_find_label()
+        else:
+            self._clear_find_highlights()
+            self._find_bar.match_label.setText("无匹配")
+
+    def _find_next(self):
+        if not self._find_matches:
+            return
+        self._find_current = (self._find_current + 1) % len(self._find_matches)
+        self._apply_find_highlights()
+        self._update_find_label()
+
+    def _find_prev(self):
+        if not self._find_matches:
+            return
+        self._find_current = (self._find_current - 1) % len(self._find_matches)
+        self._apply_find_highlights()
+        self._update_find_label()
+
+    def _apply_find_highlights(self):
+        selections = []
+        for i, cursor in enumerate(self._find_matches):
+            sel = QTextEdit.ExtraSelection()
+            sel.cursor = cursor
+            fmt = QTextCharFormat()
+            if i == self._find_current:
+                fmt.setBackground(_HIGHLIGHT_CURRENT)
+            else:
+                fmt.setBackground(_HIGHLIGHT_ALL)
+            sel.format = fmt
+            selections.append(sel)
+        self.setExtraSelections(selections)
+        # Scroll to current match
+        if 0 <= self._find_current < len(self._find_matches):
+            self.setTextCursor(self._find_matches[self._find_current])
+            self.ensureCursorVisible()
+
+    def _clear_find_highlights(self):
+        self.setExtraSelections([])
+        self._find_matches.clear()
+        self._find_current = -1
+
+    def _update_find_label(self):
+        total = len(self._find_matches)
+        current = self._find_current + 1
+        self._find_bar.match_label.setText(f"{current}/{total}")
