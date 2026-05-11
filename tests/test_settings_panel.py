@@ -70,6 +70,21 @@ class TestSettingsPanel:
         assert result["display_mode"] == "terminal"
         assert result["font_size"] == 14
 
+    def test_custom_baudrate(self):
+        """User can input a custom baud rate not in the preset list."""
+        self.panel.baud_combo.setCurrentText("250000")
+        result = self.panel.get_session_config()
+        assert result["baudrate"] == 250000
+
+    def test_apply_session_config_custom_baudrate(self):
+        """Custom baud rate from config should be displayed correctly."""
+        config = {
+            "serial": {"port": "", "baudrate": 500000, "databits": 8, "stopbits": 1, "parity": "None", "flowcontrol": "None"},
+            "display": {"mode": "terminal", "font_size": 14},
+        }
+        self.panel.apply_session_config(config)
+        assert self.panel.baud_combo.currentText() == "500000"
+
     def test_apply_session_config_text_mode_maps_to_terminal(self):
         """V1 'text' mode should map to 'terminal'."""
         config = {

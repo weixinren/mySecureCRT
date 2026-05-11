@@ -37,7 +37,12 @@ class SettingsPanel(QWidget):
 
         self.port_combo = self._add_combo(layout, "端口 Port", [])
         self.baud_combo = self._add_combo(layout, "波特率 Baud Rate", self.BAUDRATES)
+        self.baud_combo.setEditable(True)
         self.baud_combo.setCurrentText("115200")
+        self.baud_combo.setToolTip("选择或输入自定义波特率")
+        # Only allow positive integers
+        from PyQt5.QtGui import QIntValidator
+        self.baud_combo.setValidator(QIntValidator(1, 10000000))
         self.databits_combo = self._add_combo(layout, "数据位 Data Bits", self.DATABITS)
         self.databits_combo.setCurrentText("8")
         self.stopbits_combo = self._add_combo(layout, "停止位 Stop Bits", self.STOPBITS)
@@ -178,7 +183,7 @@ class SettingsPanel(QWidget):
             stopbits = 1
         return {
             "port": self.port_combo.currentText(),
-            "baudrate": int(self.baud_combo.currentText()),
+            "baudrate": int(self.baud_combo.currentText() or 115200),
             "databits": int(self.databits_combo.currentText()),
             "stopbits": stopbits,
             "parity": self.parity_combo.currentText(),
