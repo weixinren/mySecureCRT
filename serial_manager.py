@@ -67,7 +67,10 @@ class SerialManager(QObject):
         return self._serial is not None and self._serial.is_open
 
     def list_ports(self):
-        return [p.device for p in serial.tools.list_ports.comports()]
+        return [
+            (p.device, p.description)
+            for p in serial.tools.list_ports.comports()
+        ]
 
     def open(self, port, baudrate, databits, stopbits, parity, flowcontrol):
         self.close()

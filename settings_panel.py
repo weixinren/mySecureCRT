@@ -167,11 +167,15 @@ class SettingsPanel(QWidget):
             )
 
     def set_ports(self, ports):
-        current = self.port_combo.currentText()
+        """Update port combo with (device, description) tuples."""
+        current = self.port_combo.currentData() or self.port_combo.currentText()
         self.port_combo.clear()
-        self.port_combo.addItems(ports)
-        if current in ports:
-            self.port_combo.setCurrentText(current)
+        for device, desc in ports:
+            label = f"{device} - {desc}" if desc and desc != device else device
+            self.port_combo.addItem(label, device)
+        idx = self.port_combo.findData(current)
+        if idx >= 0:
+            self.port_combo.setCurrentIndex(idx)
 
     def get_settings(self):
         stopbits = self.stopbits_combo.currentText()
@@ -182,7 +186,7 @@ class SettingsPanel(QWidget):
         except ValueError:
             stopbits = 1
         return {
-            "port": self.port_combo.currentText(),
+            "port": self.port_combo.currentData() or self.port_combo.currentText(),
             "baudrate": int(self.baud_combo.currentText() or 115200),
             "databits": int(self.databits_combo.currentText()),
             "stopbits": stopbits,
@@ -192,7 +196,7 @@ class SettingsPanel(QWidget):
 
     def apply_config(self, config):
         if config.get("serial.port"):
-            idx = self.port_combo.findText(config.get("serial.port"))
+            idx = self.port_combo.findData(config.get("serial.port"))
             if idx >= 0:
                 self.port_combo.setCurrentIndex(idx)
         self.baud_combo.setCurrentText(str(config.get("serial.baudrate", 115200)))
@@ -222,7 +226,9 @@ class SettingsPanel(QWidget):
         # Block signals to avoid triggering side effects during bulk update
         self.blockSignals(True)
 
-        idx = self.port_combo.findText(serial.get("port", ""))
+        idx = self.port_combo.findData(serial.get("port", ""))
+        if idx < 0:
+            idx = self.port_combo.findText(serial.get("port", ""))
         if idx >= 0:
             self.port_combo.setCurrentIndex(idx)
         self.baud_combo.setCurrentText(str(serial.get("baudrate", 115200)))

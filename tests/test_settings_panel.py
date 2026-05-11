@@ -10,7 +10,11 @@ from settings_panel import SettingsPanel
 class TestSettingsPanel:
     def setup_method(self):
         self.panel = SettingsPanel()
-        self.panel.set_ports(["COM3", "COM5", "COM8"])
+        self.panel.set_ports([
+            ("COM3", "USB Serial Port"),
+            ("COM5", "Arduino Mega"),
+            ("COM8", "CH340"),
+        ])
 
     def test_apply_session_config_serial(self):
         """apply_session_config should set all serial controls."""
@@ -27,7 +31,8 @@ class TestSettingsPanel:
         }
         self.panel.apply_session_config(config)
 
-        assert self.panel.port_combo.currentText() == "COM5"
+        assert "COM5" in self.panel.port_combo.currentText()
+        assert self.panel.port_combo.currentData() == "COM5"
         assert self.panel.baud_combo.currentText() == "9600"
         assert self.panel.databits_combo.currentText() == "7"
         assert self.panel.stopbits_combo.currentText() == "2"
@@ -54,7 +59,7 @@ class TestSettingsPanel:
         }
         self.panel.apply_session_config(config)
         # Port not found — combo stays at whatever was there before
-        assert self.panel.port_combo.currentText() != "COM99"
+        assert self.panel.port_combo.currentData() != "COM99"
 
     def test_get_session_config(self):
         """get_session_config should return serial + display settings."""
