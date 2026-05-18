@@ -168,6 +168,7 @@ class TerminalWidget(QPlainTextEdit):
 
         # Auto-scroll: paused when user scrolls up, resumed at bottom
         self._auto_scroll = True
+        self._programmatic_scroll = False
         self.verticalScrollBar().valueChanged.connect(self._on_scroll_changed)
 
         # Find bar
@@ -357,14 +358,19 @@ class TerminalWidget(QPlainTextEdit):
         cursor.insertText(tag_part, tag_fmt)
         cursor.insertText(data_part + "\n", data_fmt)
 
-        self.setTextCursor(cursor)
         if self._auto_scroll:
-            self.ensureCursorVisible()
+            self.setTextCursor(cursor)
+            self._programmatic_scroll = True
+            sb = self.verticalScrollBar()
+            sb.setValue(sb.maximum())
+            self._programmatic_scroll = False
 
     # ── Common ──
 
     def _on_scroll_changed(self):
         """Pause auto-scroll when user scrolls up; resume at bottom."""
+        if self._programmatic_scroll:
+            return
         sb = self.verticalScrollBar()
         self._auto_scroll = sb.value() >= sb.maximum() - 3
 
