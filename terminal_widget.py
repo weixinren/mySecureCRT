@@ -166,6 +166,10 @@ class TerminalWidget(QPlainTextEdit):
         self._apply_font_style()
         self.setMaximumBlockCount(10000)
 
+        # Auto-scroll: paused when user scrolls up, resumed at bottom
+        self._auto_scroll = True
+        self.verticalScrollBar().valueChanged.connect(self._on_scroll_changed)
+
         # Find bar
         self._find_bar = FindBar(self)
         self._find_matches = []  # list of QTextCursor for each match
@@ -354,9 +358,15 @@ class TerminalWidget(QPlainTextEdit):
         cursor.insertText(data_part + "\n", data_fmt)
 
         self.setTextCursor(cursor)
-        self.ensureCursorVisible()
+        if self._auto_scroll:
+            self.ensureCursorVisible()
 
     # ── Common ──
+
+    def _on_scroll_changed(self):
+        """Pause auto-scroll when user scrolls up; resume at bottom."""
+        sb = self.verticalScrollBar()
+        self._auto_scroll = sb.value() >= sb.maximum() - 3
 
     def _reset_vt(self):
         self._vt_screen.reset()
@@ -394,8 +404,17 @@ class TerminalWidget(QPlainTextEdit):
     def keyPressEvent(self, event: QKeyEvent):
         key = event.key()
         text = event.text()
+        modifiers = event.modifiers()
+        # Ctrl+C copies selected text
+        if key == Qt.Key_C and modifiers & Qt.ControlModifier:
+            self.copy()
+            return
+        # Ctrl+A selects all
+        if key == Qt.Key_A and modifiers & Qt.ControlModifier:
+            self.selectAll()
+            return
         # Ctrl+F opens find bar
-        if key == Qt.Key_F and event.modifiers() & Qt.ControlModifier:
+        if key == Qt.Key_F and modifiers & Qt.ControlModifier:
             self._open_find_bar()
             return
         # Escape closes find bar if visible
